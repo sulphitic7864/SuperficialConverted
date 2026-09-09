@@ -1,0 +1,404 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: API specification
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: library
+    description: Community book exchange operations
+  - name: requests
+    description: Book requests from the community
+  - name: activity
+    description: Library activity and summary operations
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+  /books:
+    get:
+      operationId: listBooks
+      tags: [library]
+      summary: List library books
+      description: Returns the books currently in the shared community library.
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [all, available, reading]
+            default: all
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: borrowedBy
+          in: query
+          required: false
+          description: Return only available books previously borrowed by this full name.
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Books in the library
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Book"
+    post:
+      operationId: createBook
+      tags: [library]
+      summary: Add a book to the library
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BookInput"
+      responses:
+        "201":
+          description: Book added
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Book"
+        "400":
+          description: Invalid book details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /books/{bookId}:
+    delete:
+      operationId: deleteBook
+      tags: [library]
+      summary: Remove a book from the library
+      parameters:
+        - name: bookId
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        "200":
+          description: Book removed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Book"
+        "404":
+          description: Book not found
+  /books/{bookId}/take:
+    post:
+      operationId: takeBook
+      tags: [library]
+      summary: Record a book being taken
+      parameters:
+        - name: bookId
+          in: path
+          required: true
+          schema:
+            type: number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BookTakeInput"
+      responses:
+        "200":
+          description: Book marked as currently being read
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Book"
+        "404":
+          description: Book not found
+        "409":
+          description: Book is already being read
+  /books/{bookId}/return:
+    post:
+      operationId: returnBook
+      tags: [library]
+      summary: Record a book being returned
+      parameters:
+        - name: bookId
+          in: path
+          required: true
+          schema:
+            type: number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BookReturnInput"
+      responses:
+        "200":
+          description: Book marked as available
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Book"
+        "404":
+          description: Book not found
+        "409":
+          description: Book is already available
+  /requests:
+    get:
+      operationId: listRequests
+      tags: [requests]
+      summary: List open book requests
+      responses:
+        "200":
+          description: Open requests
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BookRequest"
+    post:
+      operationId: createRequest
+      tags: [requests]
+      summary: Post a book request
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BookRequestInput"
+      responses:
+        "201":
+          description: Request posted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookRequest"
+  /summary:
+    get:
+      operationId: getLibrarySummary
+      tags: [activity]
+      summary: Get library summary
+      description: Returns counts and recent community activity for the home page.
+      responses:
+        "200":
+          description: Library summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LibrarySummary"
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+    Book:
+      type: object
+      required:
+        - id
+        - title
+        - author
+        - genre
+        - status
+        - addedAt
+      properties:
+        id:
+          type: number
+        title:
+          type: string
+        author:
+          type: string
+        genre:
+          type: string
+        status:
+          type: string
+          enum: [available, reading]
+        holderName:
+          type: ["string", "null"]
+        takenAt:
+          type: ["string", "null"]
+          format: date-time
+        dueAt:
+          type: ["string", "null"]
+          format: date-time
+        rating:
+          type: ["number", "null"]
+          minimum: 1
+          maximum: 5
+        nextReaderNote:
+          type: ["string", "null"]
+        lovedThing:
+          type: ["string", "null"]
+        readerCount:
+          type: number
+          description: Number of distinct people who have previously borrowed this book.
+        addedAt:
+          type: string
+          format: date-time
+    BookInput:
+      type: object
+      required:
+        - title
+        - author
+        - genre
+      properties:
+        title:
+          type: string
+          minLength: 1
+        author:
+          type: string
+          minLength: 1
+        genre:
+          type: string
+          minLength: 1
+        personName:
+          type: string
+          minLength: 1
+          maxLength: 80
+        rating:
+          type: number
+          minimum: 1
+          maximum: 5
+        nextReaderNote:
+          type: string
+          maxLength: 280
+        lovedThing:
+          type: string
+          maxLength: 280
+    BookTakeInput:
+      type: object
+      required:
+        - personName
+      properties:
+        personName:
+          type: string
+          minLength: 1
+          maxLength: 80
+    BookReturnInput:
+      type: object
+      required:
+        - personName
+      properties:
+        personName:
+          type: string
+          minLength: 1
+          maxLength: 80
+        rating:
+          type: number
+          minimum: 1
+          maximum: 5
+        nextReaderNote:
+          type: string
+          maxLength: 280
+        lovedThing:
+          type: string
+          maxLength: 280
+    BookRequest:
+      type: object
+      required:
+        - id
+        - title
+        - requesterName
+        - createdAt
+      properties:
+        id:
+          type: number
+        title:
+          type: string
+        requesterName:
+          type: string
+        note:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+    BookRequestInput:
+      type: object
+      required:
+        - title
+        - requesterName
+      properties:
+        title:
+          type: string
+          minLength: 1
+        requesterName:
+          type: string
+          minLength: 1
+          maxLength: 80
+        note:
+          type: string
+          maxLength: 240
+    ActivityItem:
+      type: object
+      required:
+        - id
+        - type
+        - personName
+        - bookTitle
+        - createdAt
+      properties:
+        id:
+          type: number
+        type:
+          type: string
+          enum: [taken, returned, added, requested]
+        personName:
+          type: string
+        bookTitle:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    LibrarySummary:
+      type: object
+      required:
+        - totalBooks
+        - availableBooks
+        - readingBooks
+        - openRequests
+        - recentActivity
+      properties:
+        totalBooks:
+          type: number
+        availableBooks:
+          type: number
+        readingBooks:
+          type: number
+        openRequests:
+          type: number
+        recentActivity:
+          type: array
+          items:
+            $ref: "#/components/schemas/ActivityItem"
+    Error:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+
