@@ -6,7 +6,7 @@ import {
   Send,
   Sparkles,
 } from "lucide-react";
-import { useState, type ChangeEvent, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   getGetLibrarySummaryQueryKey,
@@ -146,7 +146,7 @@ export default function Requests() {
           {requestsQuery.isLoading ? (
             <div className="space-y-3">
               {[1, 2, 3].map((item) => (
-                <div key={item} className="shimmer h-31.5 rounded-[20px]" />
+                <div key={item} className="shimmer h-[126px] rounded-[20px]" />
               ))}
             </div>
           ) : requestsQuery.isError ? (
@@ -196,7 +196,7 @@ export default function Requests() {
           )}
         </section>
         <section className="order-1 lg:order-2">
-          <div className="rounded-3xl border border-border bg-card p-6 shadow-sm sm:p-7">
+          <div className="rounded-[24px] border border-border bg-card p-6 shadow-sm sm:p-7">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-secondary text-secondary-foreground">
               <Send size={18} />
             </div>
@@ -210,7 +210,7 @@ export default function Requests() {
               <div>
                 <label
                   htmlFor="request-title"
-                    className="text-xs font-bold uppercase tracking-widest text-muted-foreground"
+                  className="text-xs font-bold uppercase tracking-[.1em] text-muted-foreground"
                 >
                   Book title
                 </label>
@@ -219,7 +219,7 @@ export default function Requests() {
                   data-testid="input-request-title"
                   required
                   value={form.title}
-                  onChange={(event: ChangeEvent<HTMLInputElement>) =>
+                  onChange={(event) =>
                     setForm({ ...form, title: event.target.value })
                   }
                   placeholder="The book you’re hoping for"
@@ -229,7 +229,7 @@ export default function Requests() {
               <div>
                 <label
                   htmlFor="request-name"
-                    className="text-xs font-bold uppercase tracking-widest text-muted-foreground"
+                  className="text-xs font-bold uppercase tracking-[.1em] text-muted-foreground"
                 >
                   Your full name
                 </label>
@@ -239,7 +239,7 @@ export default function Requests() {
                   required
                   maxLength={80}
                   value={form.requesterName}
-                  onChange={(event: ChangeEvent<HTMLInputElement>) =>
+                  onChange={(event) =>
                     setForm({ ...form, requesterName: event.target.value })
                   }
                   placeholder="e.g. Mina Thomas"
@@ -254,7 +254,7 @@ export default function Requests() {
               <div>
                 <label
                   htmlFor="request-note"
-                    className="text-xs font-bold uppercase tracking-widest text-muted-foreground"
+                  className="text-xs font-bold uppercase tracking-[.1em] text-muted-foreground"
                 >
                   A note{" "}
                   <span className="font-normal normal-case tracking-normal">
@@ -266,11 +266,11 @@ export default function Requests() {
                   data-testid="input-request-note"
                   maxLength={240}
                   value={form.note}
-                  onChange={(event: ChangeEvent<HTMLTextAreaElement>) =>
+                  onChange={(event) =>
                     setForm({ ...form, note: event.target.value })
                   }
                   placeholder="Why this one? A translation, an edition, a mood…"
-                  className="mt-2 min-h-23.5 w-full resize-y rounded-xl border border-input bg-background px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-ring/30"
+                  className="mt-2 min-h-[94px] w-full resize-y rounded-xl border border-input bg-background px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-ring/30"
                 />
               </div>
               <button
