@@ -7,6 +7,13 @@ import { logger } from "./lib/logger";
 const app: Express = express();
 
 app.use(
+  cors({
+    origin: "https://thebluelibrary.co.in",
+    credentials: true,
+  })
+);
+
+app.use(
   pinoHttp({
     logger,
     serializers: {
