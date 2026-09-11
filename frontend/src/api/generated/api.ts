@@ -74,7 +74,7 @@ export const healthCheck = async (
 };
 
 export const getHealthCheckQueryKey = () => {
-  return [`/api/healthz`] as const;
+   return `${import.meta.env.VITE_API_URL}/api/healthz`;
 };
 
 export const getHealthCheckQueryOptions = <
