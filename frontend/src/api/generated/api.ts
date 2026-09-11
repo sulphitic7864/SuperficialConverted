@@ -163,7 +163,7 @@ export const listBooks = async (
 };
 
 export const getListBooksQueryKey = (params?: ListBooksParams) => {
-  return [`/api/books`, ...(params ? [params] : [])] as const;
+  return [`${import.meta.env.VITE_API_URL}/api/books`, ...(params ? [params] : [])] as const;
 };
 
 export const getListBooksQueryOptions = <
