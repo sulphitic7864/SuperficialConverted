@@ -21,20 +21,30 @@ export const CreateBookBody = z.object({
   title: z.string(),
   author: z.string(),
   genre: z.string(),
-  personName: z.string(),
+  personName: z.string().optional(),
   rating: z.number().optional(),
   nextReaderNote: z.string().optional(),
   lovedThing: z.string().optional(),
 });
 
 
-export const CreateBookResponse = z.object({
+const BookResponse = z.object({
   id: z.number(),
   title: z.string(),
   author: z.string(),
   genre: z.string(),
-  personName: z.string(),
+  status: z.enum(["available", "reading"]),
+  holderName: z.string().nullable().optional(),
+  takenAt: z.coerce.date().nullable().optional(),
+  dueAt: z.coerce.date().nullable().optional(),
+  rating: z.number().nullable().optional(),
+  nextReaderNote: z.string().nullable().optional(),
+  lovedThing: z.string().nullable().optional(),
+  addedAt: z.coerce.date(),
 });
+
+
+export const CreateBookResponse = BookResponse;
 
 
 // export const ListBooksResponse = z.array(
@@ -90,7 +100,7 @@ export const TakeBookBody = z.object({
 
 
 export const TakeBookResponse = z.object({
-  id: z.number(),
+  ...BookResponse.shape,
 });
 
 
@@ -108,7 +118,7 @@ export const ReturnBookBody = z.object({
 
 
 export const ReturnBookResponse = z.object({
-  id: z.number(),
+  ...BookResponse.shape,
 });
 
 
@@ -118,7 +128,7 @@ export const DeleteBookParams = z.object({
 
 
 export const DeleteBookResponse = z.object({
-  success: z.boolean(),
+  ...BookResponse.shape,
 });
 
 
