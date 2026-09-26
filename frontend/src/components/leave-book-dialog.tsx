@@ -26,17 +26,13 @@ export function LeaveBookDialog({
   onAddNew,
 }: LeaveBookDialogProps) {
   const [selectedId, setSelectedId] = useState('');
-  const [rating, setRating] = useState<number | null>(null);
   const [nextReaderNote, setNextReaderNote] = useState('');
-  const [lovedThing, setLovedThing] = useState('');
   const dialogRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (open) {
       setSelectedId('');
-      setRating(null);
       setNextReaderNote('');
-      setLovedThing('');
     }
   }, [open]);
 
@@ -44,7 +40,7 @@ export function LeaveBookDialog({
   if (!open) return null;
 
   const selectedBook = books.find((book) => String(book.id) === selectedId);
-  const review = { rating: rating ?? undefined, nextReaderNote: nextReaderNote.trim() || undefined, lovedThing: lovedThing.trim() || undefined };
+  const review = { nextReaderNote: nextReaderNote.trim() || undefined };
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto bg-sidebar/45 p-3 backdrop-blur-sm sm:items-center" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
@@ -103,11 +99,9 @@ export function LeaveBookDialog({
         </button>
 
          <div className="mt-3 rounded-2xl border border-border bg-background p-3">
-           <p className="text-xs font-bold uppercase tracking-[.1em] text-muted-foreground">Optional book note</p>
+           <p className="text-xs font-bold uppercase tracking-[.1em] text-muted-foreground">Message for the next reader (optional)</p>
            <div className="mt-2 grid gap-2.5">
-             <div><label htmlFor="leave-rating" className="text-xs text-muted-foreground">Rating</label><select id="leave-rating" data-testid="select-leave-rating" value={rating ?? ''} onChange={(event) => setRating(event.target.value ? Number(event.target.value) : null)} className="mt-1 h-10 w-full rounded-xl border border-input bg-card px-3 text-sm outline-none focus:ring-2 focus:ring-ring/30"><option value="">Skip rating</option><option value="5">★★★★★ — Loved it</option><option value="4">★★★★☆ — Really liked it</option><option value="3">★★★☆☆ — It was good</option><option value="2">★★☆☆☆ — Not for me</option><option value="1">★☆☆☆☆ — Tough read</option></select></div>
-             <div><label htmlFor="leave-next-reader-note" className="text-xs text-muted-foreground">A note for the next reader</label><textarea id="leave-next-reader-note" data-testid="input-leave-next-reader-note" maxLength={280} value={nextReaderNote} onChange={(event) => setNextReaderNote(event.target.value)} placeholder="Optional — share a spoiler-free thought…" className="mt-1 min-h-[52px] w-full resize-y rounded-xl border border-input bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring/30" /></div>
-             <div><label htmlFor="leave-loved-thing" className="text-xs text-muted-foreground">One thing you loved</label><textarea id="leave-loved-thing" data-testid="input-leave-loved-thing" maxLength={280} value={lovedThing} onChange={(event) => setLovedThing(event.target.value)} placeholder="Optional — share a favorite detail…" className="mt-1 min-h-[52px] w-full resize-y rounded-xl border border-input bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring/30" /></div>
+             <textarea id="leave-next-reader-note" data-testid="input-leave-next-reader-note" maxLength={280} value={nextReaderNote} onChange={(event) => setNextReaderNote(event.target.value)} placeholder="Share a spoiler-free thought…" className="min-h-[72px] w-full resize-y rounded-xl border border-input bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring/30" />
            </div>
          </div>
       </div>

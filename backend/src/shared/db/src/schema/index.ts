@@ -42,6 +42,18 @@ export const requestsTable = pgTable("book_requests", {
     .defaultNow(),
 });
 
+export const requestCommentsTable = pgTable("book_request_comments", {
+  id: serial("id").primaryKey(),
+  requestId: integer("request_id")
+    .notNull()
+    .references(() => requestsTable.id, { onDelete: "cascade" }),
+  commenterName: text("commenter_name").notNull(),
+  message: text("message").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
 export const activityTable = pgTable("library_activity", {
   id: serial("id").primaryKey(),
   type: activityTypeEnum("type").notNull(),
@@ -58,7 +70,7 @@ export const insertBookSchema = createInsertSchema(booksTable)
   .extend({
     title: z.string().min(1),
     author: z.string().min(1),
-    genre: z.string().min(1),
+    genre: z.string().optional(),
   });
 
 export const insertRequestSchema = createInsertSchema(requestsTable)
@@ -71,6 +83,7 @@ export const insertRequestSchema = createInsertSchema(requestsTable)
 
 export type Book = typeof booksTable.$inferSelect;
 export type BookRequest = typeof requestsTable.$inferSelect;
+export type BookRequestComment = typeof requestCommentsTable.$inferSelect;
 export type Activity = typeof activityTable.$inferSelect;
 export type InsertBook = z.infer<typeof insertBookSchema>;
 export type InsertRequest = z.infer<typeof insertRequestSchema>;

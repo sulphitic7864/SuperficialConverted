@@ -20,8 +20,9 @@ import {
   Quote,
   Radio,
   RotateCcw,
+  Search,
 } from "lucide-react";
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import {
@@ -87,27 +88,14 @@ function activityCopy(item: ActivityItem) {
 }
 
 function StatStrip({
-  total,
   available,
   reading,
 }: {
-  total: number;
   available: number;
   reading: number;
 }) {
   return (
-    <div className="grid grid-cols-3 divide-x divide-border rounded-[20px] border border-border bg-card/70 shadow-sm">
-      <div className="px-4 py-4 sm:px-6">
-        <p className="font-mono-ui text-[10px] uppercase tracking-[.14em] text-muted-foreground">
-          on the shelves
-        </p>
-        <p
-          data-testid="text-stat-total"
-          className="mt-1 font-display text-3xl font-semibold"
-        >
-          {total}
-        </p>
-      </div>
+    <div className="grid grid-cols-2 divide-x divide-border rounded-[20px] border border-border bg-card/70 shadow-sm">
       <div className="px-4 py-4 sm:px-6">
         <p className="font-mono-ui text-[10px] uppercase tracking-[.14em] text-muted-foreground">
           ready to go
@@ -151,8 +139,15 @@ export default function Home() {
     mode: "take" | "return";
   } | null>(null);
   const [leaveStep, setLeaveStep] = useState<{ name: string } | null>(null);
+  const [pendingTake, setPendingTake] = useState<{ book: Book; name: string } | null>(null);
   const [removeDialogOpen, setRemoveDialogOpen] = useState(false);
+  const [returnAdminOpen, setReturnAdminOpen] = useState(false);
+  const [returnBookId, setReturnBookId] = useState("");
+  const [search, setSearch] = useState("");
   const [notice, setNotice] = useState("");
+  useEffect(() => {
+    window.sessionStorage.removeItem("commonspine-pending-take");
+  }, []);
   const books = booksQuery.data?.length ? booksQuery.data : [];
   const available = useMemo(
     () => books?.filter((book) => book.status === "available"),
@@ -162,12 +157,45 @@ export default function Home() {
     () => books?.filter((book) => book.status === "reading"),
     [books],
   );
+  const filteredAvailable = useMemo(() => {
+    const query = search.trim().toLocaleLowerCase();
+    return [...available]
+      .sort((left, right) => left.title.localeCompare(right.title))
+      .filter((book) =>
+        !query ||
+        `${book.title} ${book.author} ${book.genre}`.toLocaleLowerCase().includes(query),
+      );
+  }, [available, search]);
   const eligibleLeaveQuery = useListBooks({
     status: "reading",
     borrowedBy: name || "__no_name__",
   });
   const summary = summaryQuery.data;
   const busy = takeMutation.isPending || returnMutation.isPending;
+  const selectedReturnBook = reading.find(
+    (book) => String(book.id) === returnBookId,
+  );
+
+  const completeTake = (book: Book, personName: string) => {
+    takeMutation.mutate(
+      { bookId: book.id, data: { personName } },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getListBooksQueryKey({ status: "all" }) });
+          queryClient.invalidateQueries({
+            queryKey: getListBooksQueryKey({ status: "reading", borrowedBy: personName }),
+          });
+          queryClient.invalidateQueries({ queryKey: getGetLibrarySummaryQueryKey() });
+          window.localStorage.setItem("commonspine-name", personName);
+          setName(personName);
+          setPendingTake(null);
+          setDialog(null);
+          setNotice(`${book.title} is going with ${personName}.`);
+        },
+        onError: () => setNotice("That moment did not save. Please try once more."),
+      },
+    );
+  };
 
   const finishReturn = (
     book: Book,
@@ -179,9 +207,7 @@ export default function Home() {
         bookId: book.id,
         data: {
           personName: details.name,
-          rating: details.rating,
           nextReaderNote: details.nextReaderNote,
-          lovedThing: details.lovedThing,
         },
       },
       {
@@ -196,7 +222,11 @@ export default function Home() {
           setName(details.name);
           if (closeLeaveStep) setLeaveStep(null);
           setDialog(null);
+          setReturnBookId("");
           setNotice(`${book.title} is back on the shelf.`);
+          if (closeLeaveStep && pendingTake) {
+            completeTake(pendingTake.book, pendingTake.name);
+          }
         },
         onError: () =>
           setNotice("That moment did not save. Please try once more."),
@@ -211,35 +241,11 @@ export default function Home() {
       finishReturn(currentDialog.book, details);
       return;
     }
-    const mutation = takeMutation;
-    mutation.mutate(
-      { bookId: dialog.book.id, data: { personName: details.name } },
-      {
-        onSuccess: () => {
-          queryClient.invalidateQueries({
-            queryKey: getListBooksQueryKey({ status: "all" }),
-          });
-          queryClient.invalidateQueries({
-            queryKey: getListBooksQueryKey({
-              status: "reading",
-              borrowedBy: details.name,
-            }),
-          });
-          queryClient.invalidateQueries({
-            queryKey: getGetLibrarySummaryQueryKey(),
-          });
-          window.localStorage.setItem("commonspine-name", details.name);
-          setName(details.name);
-          setDialog(null);
-          setLeaveStep({ name: details.name });
-          setNotice(
-            `${currentDialog.book.title} is going with ${details.name}.`,
-          );
-        },
-        onError: () =>
-          setNotice("That moment did not save. Please try once more."),
-      },
-    );
+    window.localStorage.setItem("commonspine-name", details.name);
+    setName(details.name);
+    setPendingTake({ book: currentDialog.book, name: details.name });
+    setDialog(null);
+    setLeaveStep({ name: details.name });
   };
 
   const removeBook = (book: Book) => {
@@ -346,7 +352,6 @@ export default function Home() {
           />
         ) : (
           <StatStrip
-            total={summary?.totalBooks ?? books.length}
             available={summary?.availableBooks ?? available.length}
             reading={summary?.readingBooks ?? reading.length}
           />
@@ -363,9 +368,21 @@ export default function Home() {
               Choose your next chapter.
             </h2>
           </div>
-          <span className="hidden rounded-full border border-border px-3 py-1.5 font-mono-ui text-[10px] uppercase tracking-[.12em] text-muted-foreground sm:block">
-            {available.length} waiting patiently
-          </span>
+          <label className="relative w-full sm:max-w-xs">
+            <Search
+              size={16}
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+            />
+            <input
+              type="search"
+              data-testid="input-search-books"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search title, author, or genre"
+              aria-label="Search available books"
+              className="h-11 w-full rounded-xl border border-input bg-card pl-10 pr-3 text-sm outline-none focus:ring-2 focus:ring-ring/30"
+            />
+          </label>
         </div>
         {booksQuery.isLoading ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -380,9 +397,14 @@ export default function Home() {
             title="The ready shelf is quiet."
             message="Leave a book of your own and give this room a little more to discover."
           />
+        ) : filteredAvailable.length === 0 ? (
+          <EmptyState
+            title="No matching books."
+            message="Try another title, author, or genre."
+          />
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {available.map((book: any) => (
+            {filteredAvailable.map((book) => (
               <Fragment key={book.id}>
                 <BookCard
                   book={book}
@@ -433,24 +455,10 @@ export default function Home() {
                         {book.title}
                       </h3>
                       <p className="text-sm text-muted-foreground">
-                        with {book.holderName ?? "a neighbor"} · due{" "}
-                        {book.dueAt
-                          ? new Intl.DateTimeFormat("en", {
-                              month: "short",
-                              day: "numeric",
-                            }).format(new Date(book.dueAt))
-                          : "soon"}
+                        with {book.holderName ?? "a neighbor"}
                       </p>
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    data-testid={`button-return-reading-${book.id}`}
-                    onClick={() => setDialog({ book, mode: "return" })}
-                    className="flex items-center justify-center gap-2 rounded-full border border-border px-4 py-2 text-xs font-bold hover:border-primary hover:text-primary"
-                  >
-                    <RotateCcw size={14} /> Return it
-                  </button>
                 </article>
               ))}
             </div>
@@ -510,15 +518,61 @@ export default function Home() {
         </Link>
       </section>
       <div className="mt-6 flex justify-center">
-        <button
-          type="button"
-          data-testid="button-open-remove-book"
-          onClick={() => setRemoveDialogOpen(true)}
-          className="flex items-center gap-1.5 rounded-full px-3 py-2 text-[11px] font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-destructive"
-        >
-          Admin: Remove a book
-        </button>
+        <div className="flex flex-wrap justify-center gap-3">
+          <button
+            type="button"
+            data-testid="button-open-admin-return"
+            onClick={() => {
+              setReturnAdminOpen((open) => !open);
+              setReturnBookId("");
+            }}
+            className="flex items-center gap-1.5 rounded-full px-3 py-2 text-[11px] font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-primary"
+          >
+            <RotateCcw size={13} /> Admin: Return a book
+          </button>
+          <button
+            type="button"
+            data-testid="button-open-remove-book"
+            onClick={() => setRemoveDialogOpen(true)}
+            className="flex items-center gap-1.5 rounded-full px-3 py-2 text-[11px] font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-destructive"
+          >
+            Admin: Remove a book
+          </button>
+        </div>
       </div>
+      {returnAdminOpen && (
+        <div className="mx-auto mt-4 flex max-w-xl flex-col gap-3 rounded-2xl border border-border bg-card p-4 sm:flex-row">
+          <label className="sr-only" htmlFor="admin-return-book">
+            Choose a book to return
+          </label>
+          <select
+            id="admin-return-book"
+            data-testid="select-admin-return-book"
+            value={returnBookId}
+            onChange={(event) => setReturnBookId(event.target.value)}
+            className="h-11 min-w-0 flex-1 rounded-xl border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring/30"
+          >
+            <option value="">Choose a book currently exploring</option>
+            {reading.map((book) => (
+              <option key={book.id} value={book.id}>
+                {book.title} — {book.holderName ?? "reader unknown"}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            data-testid="button-admin-return-book"
+            disabled={!selectedReturnBook}
+            onClick={() =>
+              selectedReturnBook &&
+              setDialog({ book: selectedReturnBook, mode: "return" })
+            }
+            className="flex h-11 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-bold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Return book <RotateCcw size={15} />
+          </button>
+        </div>
+      )}
       <ActionDialog
         book={dialog?.book ?? null}
         mode={dialog?.mode ?? "take"}
@@ -533,11 +587,20 @@ export default function Home() {
         books={eligibleLeaveQuery.data ?? []}
         loading={eligibleLeaveQuery.isLoading}
         pending={returnMutation.isPending}
-        onClose={() => setLeaveStep(null)}
+        onClose={() => {
+          setLeaveStep(null);
+          setPendingTake(null);
+        }}
         onChooseExisting={(book, review) =>
           finishReturn(book, { name: leaveStep?.name ?? name, ...review }, true)
         }
         onAddNew={() => {
+          if (pendingTake) {
+            window.sessionStorage.setItem(
+              "commonspine-pending-take",
+              JSON.stringify({ bookId: pendingTake.book.id, name: pendingTake.name }),
+            );
+          }
           setLeaveStep(null);
           setLocation("/add");
         }}

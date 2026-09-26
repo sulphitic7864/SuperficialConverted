@@ -20,7 +20,7 @@ export const ListBooksQueryParams = z.object({
 export const CreateBookBody = z.object({
   title: z.string(),
   author: z.string(),
-  genre: z.string(),
+  genre: z.string().optional(),
   personName: z.string().optional(),
   rating: z.number().optional(),
   nextReaderNote: z.string().optional(),
@@ -40,6 +40,8 @@ const BookResponse = z.object({
   rating: z.number().nullable().optional(),
   nextReaderNote: z.string().nullable().optional(),
   lovedThing: z.string().nullable().optional(),
+  addedBy: z.string().nullable().optional(),
+  leftAt: z.coerce.date().nullable().optional(),
   addedAt: z.coerce.date(),
 });
 
@@ -83,6 +85,10 @@ export const ListBooksResponse = z.array(
     nextReaderNote: z.string().nullable().optional(),
 
     lovedThing: z.string().nullable().optional(),
+
+    addedBy: z.string().nullable().optional(),
+
+    leftAt: z.coerce.date().nullable().optional(),
 
     readerCount: z.number().optional(),
   })
@@ -141,12 +147,41 @@ export const CreateRequestBody = z.object({
 });
 
 
+export const RequestCommentResponse = z.object({
+  id: z.number(),
+  requestId: z.number(),
+  commenterName: z.string(),
+  message: z.string(),
+  createdAt: z.coerce.date(),
+});
+
+
 export const CreateRequestResponse = z.object({
   id: z.number(),
   title: z.string(),
   requesterName: z.string(),
   note: z.string().nullable().optional(),
+  comments: z.array(RequestCommentResponse).default([]),
   createdAt: z.coerce.date(),
+});
+
+
+export const CreateRequestCommentBody = z.object({
+  commenterName: z.string(),
+  message: z.string().min(1).max(500),
+});
+
+
+export const CreateRequestCommentResponse = RequestCommentResponse;
+
+
+export const DeleteRequestParams = z.object({
+  requestId: z.coerce.number(),
+});
+
+
+export const DeleteRequestResponse = z.object({
+  id: z.number(),
 });
 
 
@@ -156,6 +191,7 @@ export const ListRequestsResponse = z.array(
     title: z.string(),
     requesterName: z.string(),
     note: z.string().nullable().optional(),
+    comments: z.array(RequestCommentResponse),
     createdAt: z.coerce.date(),
   })
 );

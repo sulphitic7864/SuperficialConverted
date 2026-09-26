@@ -39,6 +39,10 @@ export interface Book {
   nextReaderNote?: string | null;
   /** @nullable */
   lovedThing?: string | null;
+  /** @nullable */
+  addedBy?: string | null;
+  /** @nullable */
+  leftAt?: string | null;
   /** Number of distinct people who have previously borrowed this book. */
   readerCount?: number;
   addedAt: string;
@@ -50,7 +54,7 @@ export interface BookInput {
   /** @minLength 1 */
   author: string;
   /** @minLength 1 */
-  genre: string;
+  genre?: string;
   /**
      * @minLength 1
      * @maxLength 80
@@ -98,6 +102,15 @@ export interface BookRequest {
   requesterName: string;
   /** @nullable */
   note?: string | null;
+  comments: BookRequestComment[];
+  createdAt: string;
+}
+
+export interface BookRequestComment {
+  id: number;
+  requestId: number;
+  commenterName: string;
+  message: string;
   createdAt: string;
 }
 

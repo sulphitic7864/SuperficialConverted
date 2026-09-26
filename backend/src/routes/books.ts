@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { and, desc, eq, exists, ilike, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, exists, ilike, or, sql } from "drizzle-orm";
 import {
   CreateBookBody,
   CreateBookResponse,
@@ -68,7 +68,7 @@ router.get("/books", async (req, res): Promise<void> => {
     .select()
     .from(booksTable)
     .where(filters.length ? and(...filters) : undefined)
-    .orderBy(desc(booksTable.addedAt));
+    .orderBy(asc(booksTable.title));
 
   const readerCounts = await db
     .select({
@@ -84,9 +84,34 @@ router.get("/books", async (req, res): Promise<void> => {
       .map((row) => [row.bookId, row.count]),
   );
 
+  const originalContributors = await db
+    .select({ bookId: activityTable.bookId, personName: activityTable.personName })
+    .from(activityTable)
+    .where(eq(activityTable.type, "added"))
+    .orderBy(asc(activityTable.createdAt), asc(activityTable.id));
+  const contributorByBookId = new Map<number, string>();
+  for (const activity of originalContributors) {
+    if (activity.bookId !== null && !contributorByBookId.has(activity.bookId)) {
+      contributorByBookId.set(activity.bookId, activity.personName);
+    }
+  }
+  const latestReturns = await db
+    .select({ bookId: activityTable.bookId, createdAt: activityTable.createdAt })
+    .from(activityTable)
+    .where(eq(activityTable.type, "returned"))
+    .orderBy(desc(activityTable.createdAt), desc(activityTable.id));
+  const returnedAtByBookId = new Map<number, Date>();
+  for (const activity of latestReturns) {
+    if (activity.bookId !== null && !returnedAtByBookId.has(activity.bookId)) {
+      returnedAtByBookId.set(activity.bookId, activity.createdAt);
+    }
+  }
+
   res.json(ListBooksResponse.parse(books.map((book) => ({
     ...book,
     readerCount: countByBookId.get(book.id) ?? 0,
+    addedBy: contributorByBookId.get(book.id) ?? null,
+    leftAt: returnedAtByBookId.get(book.id) ?? book.addedAt,
   }))));
 });
 
@@ -103,7 +128,7 @@ router.post("/books", async (req, res): Promise<void> => {
     .values({
       title: parsedBody.data.title.trim(),
       author: parsedBody.data.author.trim(),
-      genre: parsedBody.data.genre.trim(),
+      genre: parsedBody.data.genre?.trim() || "Uncategorized",
       rating: rating ? Math.round(rating) : null,
       nextReaderNote: nextReaderNote?.trim() || null,
       lovedThing: lovedThing?.trim() || null,

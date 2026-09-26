@@ -4,9 +4,7 @@ import type { Book } from '@/api';
 import { useDialogBehavior } from './use-dialog-behavior';
 
 export type BookReview = {
-  rating?: number;
   nextReaderNote?: string;
-  lovedThing?: string;
 };
 
 export type ActionDetails = BookReview & {
@@ -20,16 +18,12 @@ function isFullName(value: string) {
 
 export function ActionDialog({ book, mode, defaultName, pending, onClose, onConfirm }: { book: Book | null; mode: 'take' | 'return'; defaultName: string; pending: boolean; onClose: () => void; onConfirm: (details: ActionDetails) => void }) {
   const [name, setName] = useState(defaultName);
-  const [rating, setRating] = useState<number | null>(null);
   const [nextReaderNote, setNextReaderNote] = useState('');
-  const [lovedThing, setLovedThing] = useState('');
   const [nameError, setNameError] = useState('');
   const dialogRef = useRef<HTMLDivElement>(null);
   useEffect(() => { setName(defaultName); }, [defaultName, book]);
   useEffect(() => {
-    setRating(null);
     setNextReaderNote('');
-    setLovedThing('');
     setNameError('');
   }, [book, mode]);
   useDialogBehavior(!!book, dialogRef, onClose);
@@ -43,9 +37,7 @@ export function ActionDialog({ book, mode, defaultName, pending, onClose, onConf
     }
     onConfirm({
       name: take ? name.trim() : returnName,
-      rating: rating ?? undefined,
       nextReaderNote: nextReaderNote.trim() || undefined,
-      lovedThing: lovedThing.trim() || undefined,
     });
   };
   return (
@@ -60,7 +52,7 @@ export function ActionDialog({ book, mode, defaultName, pending, onClose, onConf
          <p className="mt-2 text-sm leading-6 text-muted-foreground">{take ? <>You’re taking <strong className="font-semibold text-foreground">{book.title}</strong>. Enter your full name so neighbors know who is reading it.</> : <>Thank you for bringing <strong className="font-semibold text-foreground">{book.title}</strong> back to the shelf.</>}</p>
          <form onSubmit={(event) => { event.preventDefault(); submit(); }} className="mt-6 space-y-4">
            {take && <div><label htmlFor="action-name" className="text-xs font-bold uppercase tracking-[.12em] text-muted-foreground">Your full name</label><input id="action-name" data-testid="input-action-name" value={name} onChange={(event) => { setName(event.target.value); setNameError(''); }} autoFocus maxLength={80} placeholder="e.g. Mina Thomas" className="mt-2 h-12 w-full rounded-xl border border-input bg-background px-4 text-sm outline-none transition-shadow focus:ring-2 focus:ring-ring/30" />{nameError && <p data-testid="status-name-error" className="mt-2 text-xs text-destructive">{nameError}</p>}</div>}
-           {!take && <><div><label htmlFor="action-rating" className="text-xs font-bold uppercase tracking-[.12em] text-muted-foreground">Rate this book <span className="font-normal normal-case tracking-normal">(optional)</span></label><select id="action-rating" data-testid="select-action-rating" value={rating ?? ''} onChange={(event) => setRating(event.target.value ? Number(event.target.value) : null)} className="mt-2 h-12 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring/30"><option value="">Skip rating</option><option value="5">★★★★★ — Loved it</option><option value="4">★★★★☆ — Really liked it</option><option value="3">★★★☆☆ — It was good</option><option value="2">★★☆☆☆ — Not for me</option><option value="1">★☆☆☆☆ — Tough read</option></select></div><div><label htmlFor="action-next-reader-note" className="text-xs font-bold uppercase tracking-[.12em] text-muted-foreground">A note for the next reader <span className="font-normal normal-case tracking-normal">(optional)</span></label><textarea id="action-next-reader-note" data-testid="input-action-next-reader-note" maxLength={280} value={nextReaderNote} onChange={(event) => setNextReaderNote(event.target.value)} placeholder="A spoiler-free thought to pass along…" className="mt-2 min-h-[72px] w-full resize-y rounded-xl border border-input bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/30" /></div><div><label htmlFor="action-loved-thing" className="text-xs font-bold uppercase tracking-[.12em] text-muted-foreground">What did you love? <span className="font-normal normal-case tracking-normal">(optional)</span></label><textarea id="action-loved-thing" data-testid="input-action-loved-thing" maxLength={280} value={lovedThing} onChange={(event) => setLovedThing(event.target.value)} placeholder="One thing that stayed with you…" className="mt-2 min-h-[72px] w-full resize-y rounded-xl border border-input bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/30" /></div></>}
+           {!take && <div><label htmlFor="action-next-reader-note" className="text-xs font-bold uppercase tracking-[.12em] text-muted-foreground">Message for the next reader <span className="font-normal normal-case tracking-normal">(optional)</span></label><textarea id="action-next-reader-note" data-testid="input-action-next-reader-note" maxLength={280} value={nextReaderNote} onChange={(event) => setNextReaderNote(event.target.value)} placeholder="A spoiler-free thought to pass along…" className="mt-2 min-h-[96px] w-full resize-y rounded-xl border border-input bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/30" /></div>}
            <button type="submit" data-testid="button-confirm-action" disabled={pending || (take && !name.trim())} className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary font-bold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-60">
             {pending ? 'Saving this moment…' : take ? 'Take this book' : 'Return this book'} <ArrowRight size={17} />
           </button>

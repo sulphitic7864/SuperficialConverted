@@ -24,7 +24,8 @@ export function BookCard({ book, onTake, onReturn }: { book: Book; onTake: (book
       <div className="mt-6 flex items-end justify-between gap-3">
         <div className="text-xs text-muted-foreground">
           <p className="font-mono-ui text-[10px] uppercase tracking-[.12em] text-foreground/55">{book.genre}</p>
-          {book.status === 'reading' ? <p className="mt-1 flex items-center gap-1.5"><Clock3 size={12} /> back by {shortDate(book.dueAt)}</p> : <p className="mt-1">left {shortDate(book.addedAt)}</p>}
+          {book.status === 'reading' ? <p className="mt-1 flex items-center gap-1.5"><Clock3 size={12} /> currently with {book.holderName ?? 'a reader'}</p> : <p className="mt-1">left {shortDate(book.leftAt ?? book.addedAt)}</p>}
+          {book.status === 'available' && <p className="mt-1 text-[10px]">belongs to {book.addedBy ?? 'a community member'}</p>}
           <p className="mt-1">{book.readerCount ?? 0} {book.readerCount === 1 ? 'person has' : 'people have'} read this before</p>
           {book.nextReaderNote && <p className="mt-2 line-clamp-2 border-l-2 border-primary/30 pl-2 text-xs leading-4 text-foreground/75">“{book.nextReaderNote}”</p>}
         </div>

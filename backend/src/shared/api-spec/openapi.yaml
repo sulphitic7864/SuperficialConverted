@@ -194,6 +194,56 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/BookRequest"
+  /requests/{requestId}/comments:
+    post:
+      operationId: createRequestComment
+      tags: [requests]
+      summary: Reply to a book request
+      parameters:
+        - name: requestId
+          in: path
+          required: true
+          schema:
+            type: number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BookRequestCommentInput"
+      responses:
+        "201":
+          description: Reply posted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookRequestComment"
+        "404":
+          description: Request not found
+  /requests/{requestId}:
+    delete:
+      operationId: deleteRequest
+      tags: [requests]
+      summary: Remove a book request
+      parameters:
+        - name: requestId
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        "200":
+          description: Request removed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: number
+                required: [id]
+        "404":
+          description: Request not found
   /summary:
     get:
       operationId: getLibrarySummary
@@ -253,6 +303,11 @@ components:
           type: ["string", "null"]
         lovedThing:
           type: ["string", "null"]
+        addedBy:
+          type: ["string", "null"]
+        leftAt:
+          type: ["string", "null"]
+          format: date-time
         readerCount:
           type: number
           description: Number of distinct people who have previously borrowed this book.
@@ -264,7 +319,6 @@ components:
       required:
         - title
         - author
-        - genre
       properties:
         title:
           type: string
@@ -323,6 +377,7 @@ components:
         - id
         - title
         - requesterName
+        - comments
         - createdAt
       properties:
         id:
@@ -333,9 +388,40 @@ components:
           type: string
         note:
           type: ["string", "null"]
+        comments:
+          type: array
+          items:
+            $ref: "#/components/schemas/BookRequestComment"
         createdAt:
           type: string
           format: date-time
+    BookRequestComment:
+      type: object
+      required: [id, requestId, commenterName, message, createdAt]
+      properties:
+        id:
+          type: number
+        requestId:
+          type: number
+        commenterName:
+          type: string
+        message:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    BookRequestCommentInput:
+      type: object
+      required: [commenterName, message]
+      properties:
+        commenterName:
+          type: string
+          minLength: 1
+          maxLength: 80
+        message:
+          type: string
+          minLength: 1
+          maxLength: 500
     BookRequestInput:
       type: object
       required:
