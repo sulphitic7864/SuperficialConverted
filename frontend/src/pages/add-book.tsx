@@ -18,31 +18,54 @@ import {
   useTakeBook,
 } from "@/api";
 
+function isFullName(value: string) {
+  const parts = value.trim().split(/\s+/).filter(Boolean);
+  return (
+    parts.length >= 2 &&
+    parts.every((part) => part.replace(/[^A-Za-zÀ-ÖØ-öø-ÿ'-]/g, "").length >= 2)
+  );
+}
+
 export default function AddBook() {
   const queryClient = useQueryClient();
   const createBook = useCreateBook();
   const takeBook = useTakeBook();
   const [, setLocation] = useLocation();
   const [form, setForm] = useState({ title: "", author: "", genre: "" });
+  const [personName, setPersonName] = useState(() => {
+    const stored = window.localStorage.getItem("commonspine-name");
+    if (stored) return stored;
+    try {
+      const pending = window.sessionStorage.getItem("commonspine-pending-take");
+      if (pending) {
+        const parsed = JSON.parse(pending) as { name?: string };
+        if (parsed?.name) return parsed.name;
+      }
+    } catch {
+      // ignore JSON parse errors
+    }
+    return "";
+  });
   const [nextReaderNote, setNextReaderNote] = useState("");
   const [addedTitle, setAddedTitle] = useState("");
   const [notice, setNotice] = useState("");
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    if (!form.title.trim() || !form.author.trim()) return;
+    if (!form.title.trim() || !form.author.trim() || !isFullName(personName)) return;
     createBook.mutate(
       {
         data: {
           title: form.title.trim(),
           author: form.author.trim(),
           genre: form.genre.trim() || undefined,
-          personName: window.localStorage.getItem("commonspine-name") || undefined,
+          personName: personName.trim(),
           nextReaderNote: nextReaderNote.trim() || undefined,
         },
       },
       {
         onSuccess: (book) => {
+          window.localStorage.setItem("commonspine-name", personName.trim());
           queryClient.invalidateQueries({
             queryKey: getListBooksQueryKey({ status: "all" }),
           });
@@ -211,10 +234,36 @@ export default function AddBook() {
                 className="mt-2 min-h-[96px] w-full resize-y rounded-xl border border-input bg-background px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-ring/30"
               />
             </div>
+            <div>
+              <label htmlFor="book-person-name" className="text-xs font-bold uppercase tracking-[.1em] text-muted-foreground">
+                Your full name
+              </label>
+              <input
+                id="book-person-name"
+                data-testid="input-book-person-name"
+                required
+                maxLength={80}
+                value={personName}
+                onChange={(event) => setPersonName(event.target.value)}
+                placeholder="e.g. Mina Thomas"
+                className="mt-2 h-12 w-full rounded-xl border border-input bg-background px-4 text-sm outline-none focus:ring-2 focus:ring-ring/30"
+              />
+              {personName && !isFullName(personName) && (
+                <p data-testid="status-name-error" className="mt-2 text-xs text-destructive">
+                  Please enter your first and last name.
+                </p>
+              )}
+            </div>
             <button
               type="submit"
               data-testid="button-submit-book"
-              disabled={createBook.isPending || takeBook.isPending}
+              disabled={
+                createBook.isPending ||
+                takeBook.isPending ||
+                !form.title.trim() ||
+                !form.author.trim() ||
+                !isFullName(personName)
+              }
               className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary font-bold text-primary-foreground disabled:opacity-50"
             >
               {createBook.isPending || takeBook.isPending ? "Saving…" : "Leave this book"}

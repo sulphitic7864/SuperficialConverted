@@ -123,6 +123,10 @@ router.post("/books", async (req, res): Promise<void> => {
     return;
   }
   const { personName, rating, nextReaderNote, lovedThing } = parsedBody.data;
+  if (!personName || !isFullName(personName)) {
+    res.status(400).json({ error: "Please enter your full name" });
+    return;
+  }
   const [book] = await db
     .insert(booksTable)
     .values({
@@ -136,7 +140,7 @@ router.post("/books", async (req, res): Promise<void> => {
     .returning();
   await db.insert(activityTable).values({
     type: "added",
-    personName: personName?.trim() || "A community member",
+    personName: personName.trim(),
     bookTitle: book.title,
     bookId: book.id,
   });

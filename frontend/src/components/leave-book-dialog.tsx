@@ -94,7 +94,7 @@ export function LeaveBookDialog({
          <div className="my-3 flex items-center gap-3 text-[10px] font-bold uppercase tracking-[.14em] text-muted-foreground">
           <span className="h-px flex-1 bg-border" /> or <span className="h-px flex-1 bg-border" />
         </div>
-         <button type="button" data-testid="button-add-new-after-take" onClick={onAddNew} className="flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-border bg-card text-sm font-bold transition-colors hover:border-primary hover:text-primary">
+         <button type="button" data-testid="button-add-new-after-take" onClick={onAddNew} className="flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-primary text-sm font-bold text-primary-foreground transition-colors hover:bg-primary/90">
           <Plus size={17} /> Add a new book to the library
         </button>
 
