@@ -13,6 +13,7 @@ declare global {
 }
 
 import {
+  ArrowDownRight,
   CircleHelp,
   Clock3,
   LibraryBig,
@@ -141,6 +142,9 @@ export default function Home() {
   const [leaveStep, setLeaveStep] = useState<{ name: string } | null>(null);
   const [pendingTake, setPendingTake] = useState<{ book: Book; name: string } | null>(null);
   const [removeDialogOpen, setRemoveDialogOpen] = useState(false);
+  const [takeAdminOpen, setTakeAdminOpen] = useState(false);
+  const [takeBookId, setTakeBookId] = useState("");
+  const [takePersonName, setTakePersonName] = useState("");
   const [returnAdminOpen, setReturnAdminOpen] = useState(false);
   const [returnBookId, setReturnBookId] = useState("");
   const [search, setSearch] = useState("");
@@ -148,13 +152,14 @@ export default function Home() {
   useEffect(() => {
     window.sessionStorage.removeItem("commonspine-pending-take");
   }, []);
-  const books = booksQuery.data?.length ? booksQuery.data : [];
+  const booksAreArray = Array.isArray(booksQuery.data);
+  const books = booksAreArray ? booksQuery.data : [];
   const available = useMemo(
-    () => books?.filter((book) => book.status === "available"),
+    () => books.filter((book) => book.status === "available"),
     [books],
   );
   const reading = useMemo(
-    () => books?.filter((book) => book.status === "reading"),
+    () => books.filter((book) => book.status === "reading"),
     [books],
   );
   const filteredAvailable = useMemo(() => {
@@ -174,6 +179,9 @@ export default function Home() {
   const busy = takeMutation.isPending || returnMutation.isPending;
   const selectedReturnBook = reading.find(
     (book) => String(book.id) === returnBookId,
+  );
+  const selectedAdminTakeBook = available.find(
+    (book) => String(book.id) === takeBookId,
   );
 
   const completeTake = (book: Book, personName: string) => {
@@ -390,7 +398,7 @@ export default function Home() {
             <BookCardSkeleton />
             <BookCardSkeleton />
           </div>
-        ) : booksQuery.isError ? (
+        ) : booksQuery.isError || !booksAreArray ? (
           <ErrorState onRetry={() => booksQuery.refetch()} />
         ) : available.length === 0 ? (
           <EmptyState
@@ -521,6 +529,17 @@ export default function Home() {
         <div className="flex flex-wrap justify-center gap-3">
           <button
             type="button"
+            data-testid="button-open-admin-take"
+            onClick={() => {
+              setTakeAdminOpen((open) => !open);
+              setTakeBookId("");
+            }}
+            className="flex items-center gap-1.5 rounded-full px-3 py-2 text-[11px] font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-primary"
+          >
+            <ArrowDownRight size={13} /> Admin: Take a book
+          </button>
+          <button
+            type="button"
             data-testid="button-open-admin-return"
             onClick={() => {
               setReturnAdminOpen((open) => !open);
@@ -540,6 +559,55 @@ export default function Home() {
           </button>
         </div>
       </div>
+      {takeAdminOpen && (
+        <form
+          className="mx-auto mt-4 flex max-w-2xl flex-col gap-3 rounded-2xl border border-border bg-card p-4 sm:flex-row"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (selectedAdminTakeBook && takePersonName.trim()) {
+              completeTake(selectedAdminTakeBook, takePersonName.trim());
+            }
+          }}
+        >
+          <label className="sr-only" htmlFor="admin-take-book">
+            Choose an available book
+          </label>
+          <select
+            id="admin-take-book"
+            data-testid="select-admin-take-book"
+            value={takeBookId}
+            onChange={(event) => setTakeBookId(event.target.value)}
+            className="h-11 min-w-0 flex-1 rounded-xl border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring/30"
+          >
+            <option value="">Choose a book on the shelf</option>
+            {available.map((book) => (
+              <option key={book.id} value={book.id}>
+                {book.title} — {book.author}
+              </option>
+            ))}
+          </select>
+          <label className="sr-only" htmlFor="admin-take-person-name">
+            Name of the person taking the book
+          </label>
+          <input
+            id="admin-take-person-name"
+            data-testid="input-admin-take-person-name"
+            value={takePersonName}
+            onChange={(event) => setTakePersonName(event.target.value)}
+            maxLength={80}
+            placeholder="Person’s full name"
+            className="h-11 min-w-0 flex-1 rounded-xl border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring/30"
+          />
+          <button
+            type="submit"
+            data-testid="button-admin-take-book"
+            disabled={busy || !selectedAdminTakeBook || !takePersonName.trim()}
+            className="flex h-11 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-bold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Take book <ArrowDownRight size={15} />
+          </button>
+        </form>
+      )}
       {returnAdminOpen && (
         <div className="mx-auto mt-4 flex max-w-xl flex-col gap-3 rounded-2xl border border-border bg-card p-4 sm:flex-row">
           <label className="sr-only" htmlFor="admin-return-book">
